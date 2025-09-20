@@ -25,8 +25,8 @@ void Dequeue() {
         printf("Priority queue is empty!\n");
         return;
     }
-    int idx = 0;
-    for(int i=idx;i<count-1;i++) {
+    //int idx = 0;
+    for(int i=0;i<count-1;i++) {
         pq[i] = pq[i+1];
     }
     count--;
@@ -38,7 +38,7 @@ void Display() {
         return;
     }
     for(int i=0;i<count;i++) {
-        printf("%d, p = %d",pq[i].data,pq[i].priority);
+        printf("%d, p = %d-->",pq[i].data,pq[i].priority);
     }
     printf("\n");
 }
