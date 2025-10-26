@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Signal Flow Animation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .component {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease;
+        }
+        .component.active {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+            border-color: #3b82f6; /* blue-500 */
+        }
+        .signal {
+            width: 20px;
+            height: 20px;
+            background-color: #ef4444; /* red-500 */
+            border-radius: 50%;
+            position: absolute;
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            z-index: 10;
+        }
+        .signal.active {
+            opacity: 1;
+        }
+        .path {
+            position: absolute;
+            stroke-dasharray: 5;
+            animation: dash 1s linear infinite;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+        .info-box {
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl text-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">CPU Signal Processing Flow</h1>
+        <p class="text-gray-600 dark:text-gray-300 mt-2">An animated demonstration of the Von Neumann architecture.</p>
+    </div>
+
+    <div id="animation-container" class="relative w-full max-w-4xl h-96 md:h-[450px] bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+        <!-- SVG for drawing paths -->
+        <svg id="path-svg" class="absolute top-0 left-0 w-full h-full" style="z-index: 0;"></svg>
+
+        <!-- Components -->
+        <div id="input" class="component absolute flex flex-col items-center justify-center bg-green-100 dark:bg-green-900 border-2 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 w-24 h-24 rounded-lg" style="left: 5%; top: 35%;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12h-2m2 0v-2m0 2v2m2 0h2"/><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"/></svg>
+            <span class="font-semibold mt-1">Input</span>
+        </div>
+        <div id="cpu" class="component absolute flex flex-col items-center justify-center bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 w-32 h-32 rounded-lg" style="left: 50%; top: 32%; transform: translateX(-50%);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="5" y="5" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v4"/><path d="M15 1v4"/><path d="M9 23v-4"/><path d="M15 23v-4"/><path d="M1 9h4"/><path d="M1 15h4"/><path d="M19 9h4"/><path d="M19 15h4"/></svg>
+            <span class="font-semibold mt-1">CPU</span>
+        </div>
+        <div id="alu" class="component absolute flex flex-col items-center justify-center bg-yellow-100 dark:bg-yellow-900 border-2 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200 w-24 h-24 rounded-lg" style="left: 50%; top: 5%; transform: translateX(-50%);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10"/><path d="M2 17h10"/><path d="m7 2 5 5-5 5"/><path d="m7 12 5 5-5 5"/></svg>
+            <span class="font-semibold mt-1">ALU</span>
+        </div>
+        <div id="memory" class="component absolute flex flex-col items-center justify-center bg-purple-100 dark:bg-purple-900 border-2 border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-200 w-24 h-24 rounded-lg" style="left: 50%; top: 68%; transform: translateX(-50%);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2Z"/><path d="M6 10h4"/><path d="M6 14h8"/><path d="m14 10 4 4"/><path d="m18 10-4 4"/></svg>
+            <span class="font-semibold mt-1">Memory</span>
+        </div>
+        <div id="output" class="component absolute flex flex-col items-center justify-center bg-red-100 dark:bg-red-900 border-2 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 w-24 h-24 rounded-lg" style="right: 5%; top: 35%;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12h-2m2 0v-2m0 2v2m2 0h2"/><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="m16 12-4 4-4-4"/></svg>
+            <span class="font-semibold mt-1">Output</span>
+        </div>
+        
+        <!-- Signal Ball -->
+        <div id="signal" class="signal"></div>
+    </div>
+    
+    <div class="w-full max-w-4xl mt-6">
+        <div id="info-box" class="info-box bg-white dark:bg-gray-800 rounded-lg p-4 text-center shadow-md">
+            <p id="info-text" class="text-gray-700 dark:text-gray-200 text-lg transition-opacity duration-500">Click 'Start Animation' to see the process.</p>
+        </div>
+    </div>
+    
+    <div class="mt-6 flex space-x-4">
+        <button id="start-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-transform transform hover:scale-105">
+            Start Animation
+        </button>
+        <button id="reset-btn" class="px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition-transform transform hover:scale-105">
+            Reset
+        </button>
+    </div>
+
+    <script>
+        const elements = {
+            input: document.getElementById('input'),
+            cpu: document.getElementById('cpu'),
+            alu: document.getElementById('alu'),
+            memory: document.getElementById('memory'),
+            output: document.getElementById('output'),
+            signal: document.getElementById('signal'),
+            startBtn: document.getElementById('start-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            infoText: document.getElementById('info-text'),
+            pathSvg: document.getElementById('path-svg')
+        };
+
+        let animationTimeout;
+        let isAnimating = false;
+
+        const messages = [
+            "1. An input signal (data/instruction) is sent to the CPU.",
+            "2. CPU's Control Unit decodes the instruction. If it's an arithmetic/logic task, it sends data to the ALU.",
+            "3. The ALU (Arithmetic Logic Unit) performs the calculation or logical operation.",
+            "4. The result is sent back to a register in the CPU.",
+            "5. The CPU sends the data to be stored in Memory (RAM).",
+            "6. Data is retrieved from Memory by the CPU when needed.",
+            "7. Finally, the processed data is sent to an output device.",
+            "Animation complete! Click Reset to run it again."
+        ];
+
+        function getCenter(el) {
+            const rect = el.getBoundingClientRect();
+            const containerRect = el.offsetParent.getBoundingClientRect();
+            return {
+                x: rect.left - containerRect.left + rect.width / 2,
+                y: rect.top - containerRect.top + rect.height / 2
+            };
+        }
+
+        function drawPaths() {
+            elements.pathSvg.innerHTML = ''; // Clear existing paths
+            const pathData = [
+                { from: elements.input, to: elements.cpu },
+                { from: elements.cpu, to: elements.alu },
+                { from: elements.alu, to: elements.cpu },
+                { from: elements.cpu, to: elements.memory },
+                { from: elements.memory, to: elements.cpu },
+                { from: elements.cpu, to: elements.output },
+            ];
+            
+            pathData.forEach(p => {
+                const fromCenter = getCenter(p.from);
+                const toCenter = getCenter(p.to);
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M${fromCenter.x} ${fromCenter.y} L${toCenter.x} ${toCenter.y}`);
+                path.setAttribute('stroke', '#9ca3af'); // gray-400
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                path.classList.add('path');
+                elements.pathSvg.appendChild(path);
+            });
+        }
+        
+        function updateTextAndHighlight(index, activeEl) {
+            elements.infoText.style.opacity = '0';
+            setTimeout(() => {
+                elements.infoText.textContent = messages[index];
+                elements.infoText.style.opacity = '1';
+            }, 300);
+
+            document.querySelectorAll('.component').forEach(el => el.classList.remove('active'));
+            if (activeEl) {
+                activeEl.classList.add('active');
+            }
+        }
+
+        function moveSignal(targetEl, duration = 1500) {
+            return new Promise(resolve => {
+                const center = getCenter(targetEl);
+                elements.signal.style.transition = `all ${duration / 1000}s cubic-bezier(0.4, 0, 0.2, 1)`;
+                elements.signal.style.left = `${center.x - elements.signal.offsetWidth / 2}px`;
+                elements.signal.style.top = `${center.y - elements.signal.offsetHeight / 2}px`;
+                animationTimeout = setTimeout(resolve, duration);
+            });
+        }
+        
+        async function startAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            elements.startBtn.disabled = true;
+            elements.startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // Initial state
+            const inputCenter = getCenter(elements.input);
+            elements.signal.style.transition = 'none';
+            elements.signal.style.left = `${inputCenter.x - elements.signal.offsetWidth / 2}px`;
+            elements.signal.style.top = `${inputCenter.y - elements.signal.offsetHeight / 2}px`;
+
+            // Start
+            await new Promise(r => setTimeout(r, 100)); // Short delay
+            elements.signal.classList.add('active');
+            
+            updateTextAndHighlight(0, elements.input);
+            await moveSignal(elements.cpu);
+
+            updateTextAndHighlight(1, elements.cpu);
+            await moveSignal(elements.alu);
+
+            updateTextAndHighlight(2, elements.alu);
+            await moveSignal(elements.cpu);
+            
+            updateTextAndHighlight(3, elements.cpu);
+            await moveSignal(elements.memory);
+
+            updateTextAndHighlight(4, elements.memory);
+            await moveSignal(elements.cpu);
+            
+            updateTextAndHighlight(5, elements.cpu);
+            await moveSignal(elements.output);
+
+            updateTextAndHighlight(6, elements.output);
+            await new Promise(r => animationTimeout = setTimeout(r, 1500));
+            
+            updateTextAndHighlight(7, null);
+            elements.signal.classList.remove('active');
+        }
+
+        function resetAnimation() {
+            clearTimeout(animationTimeout);
+            isAnimating = false;
+
+            const inputCenter = getCenter(elements.input);
+            elements.signal.classList.remove('active');
+            elements.signal.style.transition = 'none';
+            elements.signal.style.left = `${inputCenter.x - elements.signal.offsetWidth / 2}px`;
+            elements.signal.style.top = `${inputCenter.y - elements.signal.offsetHeight / 2}px`;
+            
+            document.querySelectorAll('.component').forEach(el => el.classList.remove('active'));
+            updateTextAndHighlight(-1, null); // Resets text
+            elements.infoText.textContent = "Click 'Start Animation' to see the process.";
+
+            elements.startBtn.disabled = false;
+            elements.startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        elements.startBtn.addEventListener('click', startAnimation);
+        elements.resetBtn.addEventListener('click', resetAnimation);
+        
+        // Initial setup
+        window.onload = () => {
+            drawPaths();
+            resetAnimation();
+        };
+        window.onresize = () => {
+            drawPaths();
+            if (!isAnimating) {
+               resetAnimation();
+            }
+        };
+    </script>
+</body>
+</html>
